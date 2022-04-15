@@ -198,7 +198,7 @@ class ShareByMailProvider implements IShareProvider {
 
 		// Sends share password to receiver when it's a permanent one (otherwise she will have to request it via the showShare UI)
 		// or to owner when the password shall be given during a Talk session
-		if ($this->config->getSystemValue('sharing.enable_mail_link_password_expiration', false) === true || $share->getSendPasswordByTalk()) {
+		if ($this->config->getSystemValue('sharing.enable_mail_link_password_expiration', false) === false || $share->getSendPasswordByTalk()) {
 			$send = $this->sendPassword($share, $password);
 			if ($passwordEnforced && $send === false) {
 				$this->sendPasswordToOwner($share, $password);
