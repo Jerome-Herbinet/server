@@ -359,6 +359,17 @@ export default class Share {
 	}
 
 	/**
+	 * Password expiration time
+	 *
+	 * @return {boolean}
+	 * @readonly
+	 * @memberof Share
+	 */
+	get passwordExpirationTime() {
+		return this._share.password_expiration_time
+	}
+
+	/**
 	 * Password protection by Talk of the share
 	 *
 	 * @return {boolean}
