@@ -472,7 +472,7 @@ export default {
 				return null
 			}
 
-			var expirationTime = moment(this.share.passwordExpirationTime)
+			const expirationTime = moment(this.share.passwordExpirationTime)
 
 			if (expirationTime.diff(moment()) < 0) {
 				return false
