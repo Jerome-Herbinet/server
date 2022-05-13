@@ -192,10 +192,10 @@
 						@submit="onPasswordSubmit">
 						{{ t('files_sharing', 'Enter a password') }}
 					</ActionInput>
-					<ActionText v-if="passwordExpirationTime" icon="icon-info">
+					<ActionText v-if="isEmailShareType && passwordExpirationTime" icon="icon-info">
 						{{ t('files_sharing', 'Password expires {passwordExpirationTime}', {passwordExpirationTime}) }}
 					</ActionText>
-					<ActionText v-else-if="passwordExpirationTime !== null" icon="icon-error">
+					<ActionText v-else-if="isEmailShareType && passwordExpirationTime !== null" icon="icon-error">
 						{{ t('files_sharing', 'Password expired') }}
 					</ActionText>
 
