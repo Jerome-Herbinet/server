@@ -147,10 +147,6 @@ class Generator {
 			$crop = $specifications[0]['crop'] ?? false;
 			$preview = $this->getSmallImagePreview($previewFolder, $file, $mimeType, $previewVersion, $crop);
 
-			if ($preview === null) {
-				throw new NotFoundException('No image preview provided');
-			}
-
 			if ($preview->getSize() === 0) {
 				$preview->delete();
 				throw new NotFoundException('Cached preview size 0, invalid!');
@@ -233,7 +229,7 @@ class Generator {
 	 *
 	 * @throws NotFoundException
 	 */
-	private function getSmallImagePreview(ISimpleFolder $previewFolder, File $file, string $mimeType, string $prefix, bool $crop): ?ISimpleFile {
+	private function getSmallImagePreview(ISimpleFolder $previewFolder, File $file, string $mimeType, string $prefix, bool $crop): ISimpleFile {
 		$nodes = $previewFolder->getDirectoryListing();
 
 		foreach ($nodes as $node) {
@@ -291,7 +287,7 @@ class Generator {
 			}
 		}
 
-		return null;
+		throw new NotFoundException('No provider successfully handled the preview generation');
 	}
 
 	/**
