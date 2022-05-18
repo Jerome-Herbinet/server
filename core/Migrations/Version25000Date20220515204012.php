@@ -19,26 +19,26 @@
  *
  */
 
-namespace OC\Migrations;
+namespace OC\Core\Migrations;
 
-use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Types\Type;
-use OCP\Migration\ISchemaMigration;
+use Closure;
+use OCP\DB\ISchemaWrapper;
+use OCP\DB\Types;
+use OCP\Migration\IOutput;
+use OCP\Migration\SimpleMigrationStep;
 
-/**
- * Auto-generated migration step: Please modify to your needs!
- */
-class Version20181220085457 implements ISchemaMigration {
-	public function changeSchema(Schema $schema, array $options) {
-		$prefix = $options['tablePrefix'];
+class Version25000Date20220515204012 extends SimpleMigrationStep {
+	public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper {
+		/** @var ISchemaWrapper $schema */
+		$schema = $schemaClosure();
 
-		if ($schema->hasTable("${prefix}share")) {
-			$shareTable = $schema->getTable("${prefix}share");
+		if ($schema->hasTable('share')) {
+			$shareTable = $schema->getTable('share');
 
 			if (!$shareTable->hasColumn('attributes')) {
 				$shareTable->addColumn(
 					'attributes',
-					Type::JSON,
+					Types::JSON,
 					[
 						'default' => null,
 						'notnull' => false
@@ -46,5 +46,7 @@ class Version20181220085457 implements ISchemaMigration {
 				);
 			}
 		}
+
+		return $schema;
 	}
 }
