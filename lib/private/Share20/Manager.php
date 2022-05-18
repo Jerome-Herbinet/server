@@ -1093,6 +1093,7 @@ class Manager implements IManager {
 				'shareWith' => $share->getSharedWith(),
 				'uidOwner' => $share->getSharedBy(),
 				'permissions' => $share->getPermissions(),
+				'attributes' => $share->getAttributes(),
 				'path' => $userFolder->getRelativePath($share->getNode()->getPath()),
 			]);
 		}
@@ -1777,7 +1778,7 @@ class Manager implements IManager {
 	 * @return IShare
 	 */
 	public function newShare() {
-		return new \OC\Share20\Share($this->rootFolder, $this->userManager);
+		return new Share($this->rootFolder, $this->userManager);
 	}
 
 	/**
@@ -2086,5 +2087,17 @@ class Manager implements IManager {
 		foreach ($providers as $provider) {
 			yield from $provider->getAllShares();
 		}
+	}
+
+	/**
+	 * @param IAttributes|null $perms
+	 * @return string
+	 */
+	private function hashAttributes($perms) {
+		if ($perms === null || empty($perms->toArray())) {
+			return "";
+		}
+
+		return \md5(\json_encode($perms->toArray()));
 	}
 }

@@ -106,6 +106,7 @@ class Application extends App implements IBootstrap {
 	public function boot(IBootContext $context): void {
 		$context->injectFn([$this, 'registerMountProviders']);
 		$context->injectFn([$this, 'registerEventsScripts']);
+		$context->injectFn([$this, 'registerDownloadEvents']);
 		$context->injectFn([$this, 'setupSharingMenus']);
 
 		Helper::registerHooks();
@@ -148,6 +149,64 @@ class Application extends App implements IBootstrap {
 			$listener = $this->getContainer()->query(Listener::class);
 			$listener->userAddedToGroup($event);
 		});
+	}
+
+	public function registerDownloadEvents(
+		EventDispatcherInterface $oldDispatcher,
+		?IUserSession $userSession,
+		IRootFolder $rootFolder
+	) {
+
+		$oldDispatcher->addListener(
+			'file.beforeGetDirect',
+			function (GenericEvent $event) use ($userSession, $rootFolder) {
+				$pathsToCheck[] = $event->getArgument('path');
+
+				// Check only for user/group shares. Don't restrict e.g. share links
+				if ($userSession && $userSession->isLoggedIn()) {
+					$uid = $userSession->getUser()->getUID();
+					$viewOnlyHandler = new ViewOnly(
+						$rootFolder->getUserFolder($uid)
+					);
+					if (!$viewOnlyHandler->check($pathsToCheck)) {
+						$event->setArgument('errorMessage', 'Access to this resource or one of its sub-items has been denied.');
+					}
+				}
+			}
+		);
+
+		$oldDispatcher->addListener(
+			'file.beforeCreateZip',
+			function (GenericEvent $event) use ($userSession, $rootFolder) {
+				$dir = $event->getArgument('dir');
+				$files = $event->getArgument('files');
+
+				$pathsToCheck = [];
+				if (\is_array($files)) {
+					foreach ($files as $file) {
+						$pathsToCheck[] = $dir . '/' . $file;
+					}
+				} elseif (\is_string($files)) {
+					$pathsToCheck[] = $dir . '/' . $files;
+				}
+
+				// Check only for user/group shares. Don't restrict e.g. share links
+				if ($userSession && $userSession->isLoggedIn()) {
+					$uid = $userSession->getUser()->getUID();
+					$viewOnlyHandler = new ViewOnly(
+						$rootFolder->getUserFolder($uid)
+					);
+					if (!$viewOnlyHandler->check($pathsToCheck)) {
+						$event->setArgument('errorMessage', 'Access to this resource or one of its sub-items has been denied.');
+						$event->setArgument('run', false);
+					} else {
+						$event->setArgument('run', true);
+					}
+				} else {
+					$event->setArgument('run', true);
+				}
+			}
+		);
 	}
 
 	public function setupSharingMenus(IManager $shareManager, IFactory $l10nFactory, IUserSession $userSession) {

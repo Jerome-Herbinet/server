@@ -167,6 +167,13 @@ class OC_Files {
 				}
 			}
 
+			//Dispatch an event to see if any apps have problem with download
+			$event = new \Symfony\Component\EventDispatcher\GenericEvent(null, ['dir' => $dir, 'files' => $files, 'run' => true]);
+			OC::$server->getEventDispatcher()->dispatch('file.beforeCreateZip', $event);
+			if (($event->getArgument('run') === false) or ($event->hasArgument('errorMessage'))) {
+				throw new \OC\ForbiddenException($event->getArgument('errorMessage'));
+			}
+
 			$streamer = new Streamer(\OC::$server->getRequest(), $fileSize, $numberOfFiles);
 			OC_Util::obEnd();
 
@@ -212,6 +219,8 @@ class OC_Files {
 			$streamer->finalize();
 			set_time_limit($executionTime);
 			self::unlockAllTheFiles($dir, $files, $getType, $view, $filename);
+			$event = new \Symfony\Component\EventDispatcher\GenericEvent(null, ['result' => 'success', 'dir' => $dir, 'files' => $files]);
+			OC::$server->getEventDispatcher()->dispatch('file.afterCreateZip', $event);
 		} catch (\OCP\Lock\LockedException $ex) {
 			self::unlockAllTheFiles($dir, $files, $getType, $view, $filename);
 			OC::$server->getLogger()->logException($ex);
@@ -222,13 +231,16 @@ class OC_Files {
 			self::unlockAllTheFiles($dir, $files, $getType, $view, $filename);
 			OC::$server->getLogger()->logException($ex);
 			$l = \OC::$server->getL10N('lib');
-			\OC_Template::printErrorPage($l->t('Cannot read file'), $ex->getMessage(), 200);
+			\OC_Template::printErrorPage($l->t('Cannot download file'), $ex->getMessage(), 200);
 		} catch (\Exception $ex) {
 			self::unlockAllTheFiles($dir, $files, $getType, $view, $filename);
 			OC::$server->getLogger()->logException($ex);
 			$l = \OC::$server->getL10N('lib');
 			$hint = method_exists($ex, 'getHint') ? $ex->getHint() : '';
-			\OC_Template::printErrorPage($l->t('Cannot read file'), $hint, 200);
+			if ($event && $event->hasArgument('message')) {
+				$hint .= ' ' . $event->getArgument('message');
+			}
+			\OC_Template::printErrorPage($l->t('Cannot download file'), $hint, 200);
 		}
 	}
 
@@ -287,6 +299,7 @@ class OC_Files {
 	 * @param string $name
 	 * @param string $dir
 	 * @param array $params ; 'head' boolean to only send header of the request ; 'range' http range header
+	 * @throws \OC\ForbiddenException
 	 */
 	private static function getSingleFile($view, $dir, $name, $params) {
 		$filename = $dir . '/' . $name;
@@ -320,6 +333,18 @@ class OC_Files {
 
 		if (isset($params['range']) && substr($params['range'], 0, 6) === 'bytes=') {
 			$rangeArray = self::parseHttpRangeHeader(substr($params['range'], 6), $fileSize);
+		}
+
+		$event = new \Symfony\Component\EventDispatcher\GenericEvent(null, ['path' => $filename]);
+		OC::$server->getEventDispatcher()->dispatch('file.beforeGetDirect', $event);
+
+		if (!\OC\Files\Filesystem::isReadable($filename) || $event->hasArgument('errorMessage')) {
+			if (!$event->hasArgument('errorMessage')) {
+				$msg = $event->getArgument('errorMessage');
+			} else {
+				$msg = 'Access denied';
+			}
+			throw new \OC\ForbiddenException($msg);
 		}
 
 		self::sendHeaders($filename, $name, $rangeArray);
